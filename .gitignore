@@ -1,0 +1,19 @@
+# Python
+backend/venv/
+backend/venv_brew/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reports/Test files
+backend/test.pdf
+backend/test.jpg
+
+# IDE
+.vscode/
+.idea/
