@@ -9,24 +9,14 @@ import io
 import base64
 import numpy as np
 from typing import Optional, List
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
 import tempfile
 import os
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 # Register fonts for Cyrillic support
 FONT_PATH = "/System/Library/Fonts/Supplemental/Arial.ttf"
-FONT_NAME = 'Helvetica' # Default fallback
 
 if os.path.exists(FONT_PATH):
     try:
-        pdfmetrics.registerFont(TTFont('Arial', FONT_PATH))
-        FONT_NAME = 'Arial'
         plt.rcParams['font.family'] = 'sans-serif'
         plt.rcParams['font.sans-serif'] = ['Arial']
     except Exception as e:
@@ -130,55 +120,6 @@ def create_chart_base64(fig):
     plt.close(fig)
     return f"data:image/png;base64,{img_str}"
 
-def create_image_report(fig):
-    img_buffer = io.BytesIO()
-    fig.savefig(img_buffer, format='jpeg', dpi=300, bbox_inches='tight', facecolor='white')
-    img_buffer.seek(0)
-    data = img_buffer.getvalue()
-    plt.close(fig)
-    return data
-
-def create_pdf_report(title, data_dict, fig, summary_text):
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    styles = getSampleStyleSheet()
-    
-    # Use the registered font or fallback
-    styles['Normal'].fontName = FONT_NAME
-    styles['Heading1'].fontName = FONT_NAME
-    
-    story = []
-    
-    # Title
-    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=22, alignment=1, spaceAfter=20, fontName=FONT_NAME)
-    story.append(Paragraph(title, title_style))
-    
-    # Render Chart to Image
-    img_buf = io.BytesIO()
-    fig.savefig(img_buf, format='png', dpi=300, bbox_inches='tight', facecolor='white')
-    img_buf.seek(0)
-    
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp:
-        tmp.write(img_buf.getvalue())
-        tmp_path = tmp.name
-    
-    story.append(Image(tmp_path, width=6.5*inch, height=4.5*inch))
-    story.append(Spacer(1, 20))
-    
-    # Summary
-    summary_style = ParagraphStyle('Summary', parent=styles['Normal'], fontSize=12, leading=16, fontName=FONT_NAME)
-    story.append(Paragraph("<b>Результати та аналіз:</b>", summary_style))
-    story.append(Spacer(1, 10))
-    
-    for line in summary_text.split('\n'):
-        if line.strip():
-            story.append(Paragraph(line, summary_style))
-    
-    doc.build(story)
-    os.unlink(tmp_path)
-    plt.close(fig)
-    return buffer.getvalue()
-
 # --- Endpoints ---
 
 @app.post("/calculate/hourly-income")
@@ -203,44 +144,6 @@ async def calculate_hourly_income(data: HourlyIncomeRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/hourly-income/report")
-async def calculate_hourly_income_report(data: HourlyIncomeRequest, format: str = "pdf"):
-    res = await calculate_hourly_income(data)
-    symbol = res["currency_symbol"]
-    
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
-    fig.suptitle('Звіт про реальний погодинний дохід', fontsize=16, fontweight='bold')
-    
-    # Charts...
-    ax1.pie([res["net_income"], data.monthly_income*data.taxes/100, data.work_expenses], 
-            labels=['Чистий', 'Податки', 'Витрати'], autopct='%1.1f%%', colors=['#2ecc71', '#e74c3c', '#f1c40f'])
-    ax1.set_title('Структура доходу')
-    
-    ax2.bar(['Робота', 'Дорога'], [data.work_hours, data.commute_time], color=['#3498db', '#9b59b6'])
-    ax2.set_title('Розподіл часу')
-    
-    ax3.bar(['Номінальна', 'Реальна'], [res["nominal_hourly_income"], res["real_hourly_income"]], color=['#bdc3c7', '#27ae60'])
-    ax3.set_title('Погодинна ставка')
-    
-    ax4.axis('off')
-    summary = f"Чистий дохід: {symbol}{res['net_income']:,.2f}\n" \
-              f"Реальна ставка: {symbol}{res['real_hourly_income']:,.2f}/год\n" \
-              f"Ефективність: {res['efficiency']}%"
-    ax4.text(0.1, 0.5, summary, fontsize=12)
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=hourly_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Аналіз погодинного доходу", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=hourly_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/time-value")
 async def calculate_time_value(data: TimeValueRequest):
@@ -257,36 +160,6 @@ async def calculate_time_value(data: TimeValueRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/time-value/report")
-async def calculate_time_value_report(data: TimeValueRequest, format: str = "pdf"):
-    res = await calculate_time_value(data)
-    symbol = res["currency_symbol"]
-    h = res["time_value"]
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    periods = ['Година', 'День', 'Тиждень', 'Місяць']
-    values = [h, h*8, h*40, h*160]
-    ax.bar(periods, values, color='#3498db')
-    ax.set_title('Вартість часу в різних масштабах')
-    
-    summary = f"Вартість години: {symbol}{h:,.2f}\n" \
-              f"Вартість дня: {symbol}{h*8:,.2f}\n" \
-              f"Вартість тижня: {symbol}{h*40:,.2f}\n" \
-              f"Вартість місяця: {symbol}{h*160:,.2f}"
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=time_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Аналіз вартості часу", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=time_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/investment")
 async def calculate_investment(data: InvestmentRequest):
@@ -314,41 +187,6 @@ async def calculate_investment(data: InvestmentRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/investment/report")
-async def calculate_investment_report(data: InvestmentRequest, format: str = "pdf"):
-    res = await calculate_investment(data)
-    symbol = res["currency_symbol"]
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    # Reuse chart logic
-    r = data.annual_return / 100 / 12
-    years = np.arange(0, data.period + 1)
-    vals = [data.initial_amount * (1+r)**(y*12) + data.monthly_contribution * (((1+r)**(y*12) - 1) / r) if y>0 else data.initial_amount for y in years]
-    ax1.plot(years, vals, marker='o', color='#2ecc71')
-    ax1.set_title('Графік зростання')
-    
-    ax2.pie([data.initial_amount + data.monthly_contribution*data.period*12, res["total_gain"]], 
-            labels=['Внески', 'Прибуток'], autopct='%1.1f%%', colors=['#3498db', '#2ecc71'])
-    ax2.set_title('Структура фінального капіталу')
-    
-    summary = f"Фінальна сума: {symbol}{res['future_value']:,.2f}\n" \
-              f"Всього інвестовано: {symbol}{res['total_contributions']:,.2f}\n" \
-              f"Чистий прибуток: {symbol}{res['total_gain']:,.2f}\n" \
-              f"Загальний ROI: {res['roi']}%"
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=investment_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Інвестиційний звіт", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=investment_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/credit")
 async def calculate_credit(data: CreditRequest):
@@ -370,37 +208,6 @@ async def calculate_credit(data: CreditRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/credit/report")
-async def calculate_credit_report(data: CreditRequest, format: str = "pdf"):
-    res = await calculate_credit(data)
-    symbol = res["currency_symbol"]
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    ax1.pie([data.amount, res["overpayment"]], labels=['Тіло', 'Відсотки'], autopct='%1.1f%%')
-    ax1.set_title('Розподіл виплат')
-    
-    # Simple bar for comparison with inflation/alt return
-    ax2.bar(['Ставка', 'Інфляція', 'Альтерн.'], [data.rate, data.inflation, data.alternative_return], color=['#e74c3c', '#95a5a6', '#2ecc71'])
-    ax2.set_title('Порівняння показників (%)')
-    
-    summary = f"Кредит: {symbol}{data.amount:,.2f}\n" \
-              f"Щомісячний платіж: {symbol}{res['monthly_payment']:,.2f}\n" \
-              f"Загальна переплата: {symbol}{res['overpayment']:,.2f}\n" \
-              f"Загальна сума: {symbol}{res['total_payment']:,.2f}"
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=credit_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Кредитний звіт", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=credit_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/buy-rent")
 async def calculate_buy_rent(data: BuyRentRequest):
@@ -439,37 +246,6 @@ async def calculate_buy_rent(data: BuyRentRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/buy-rent/report")
-async def calculate_buy_rent_report(data: BuyRentRequest, format: str = "pdf"):
-    res = await calculate_buy_rent(data)
-    symbol = res["currency_symbol"]
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    # Redo chart logic for report
-    years = np.arange(1, data.horizon + 1)
-    # ... Simplified for brevity in report
-    ax1.bar(['Купівля', 'Оренда'], [res["net_buy_position"], res["net_rent_position"]], color=['#27ae60', '#3498db'])
-    ax1.set_title('Чистий капітал через горизонт')
-    
-    ax2.axis('off')
-    summary = f"Капітал при купівлі: {symbol}{res['net_buy_position']:,.2f}\n" \
-              f"Капітал при оренді: {symbol}{res['net_rent_position']:,.2f}\n" \
-              f"Рекомендація: {'КУПУВАТИ' if res['recommendation']=='buy' else 'ОРЕНДУВАТИ'}"
-    ax2.text(0.1, 0.5, summary, fontsize=12)
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=buy_rent_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Аналіз: Купівля vs Оренда", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=buy_rent_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/retirement")
 async def calculate_retirement(data: RetirementRequest):
@@ -500,32 +276,6 @@ async def calculate_retirement(data: RetirementRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/retirement/report")
-async def calculate_retirement_report(data: RetirementRequest, format: str = "pdf"):
-    res = await calculate_retirement(data)
-    symbol = res["currency_symbol"]
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.bar(['Поточний план', 'Ціль'], [res["future_value"], res["required_capital"]], color=['#27ae60', '#f39c12'])
-    ax.set_title('Аналіз пенсійних накопичень')
-    
-    summary = f"Прогноз накопичень: {symbol}{res['future_value']:,.2f}\n" \
-              f"Необхідний капітал: {symbol}{res['required_capital']:,.2f}\n" \
-              f"Дефіцит: {symbol}{res['gap']:,.2f}"
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=retirement_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Пенсійний звіт", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=retirement_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/debt-payoff")
 async def calculate_debt_payoff(data: DebtPayoffRequest):
@@ -557,32 +307,6 @@ async def calculate_debt_payoff(data: DebtPayoffRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/debt-payoff/report")
-async def calculate_debt_payoff_report(data: DebtPayoffRequest, format: str = "pdf"):
-    res = await calculate_debt_payoff(data)
-    symbol = res["currency_symbol"]
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.pie([data.balance, res["total_interest"]], labels=['Борг', 'Відсотки'], autopct='%1.1f%%', colors=['#3498db', '#e74c3c'])
-    ax.set_title('Структура виплат боргу')
-    
-    summary = f"Термін погашення: {res['months']} міс.\n" \
-              f"Всього буде сплачено: {symbol}{res['total_paid']:,.2f}\n" \
-              f"З них відсотків: {symbol}{res['total_interest']:,.2f}"
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=debt_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Звіт про погашення боргу", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=debt_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/emergency-fund")
 async def calculate_emergency_fund(data: EmergencyFundRequest):
@@ -606,32 +330,6 @@ async def calculate_emergency_fund(data: EmergencyFundRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/emergency-fund/report")
-async def calculate_emergency_fund_report(data: EmergencyFundRequest, format: str = "pdf"):
-    res = await calculate_emergency_fund(data)
-    symbol = res["currency_symbol"]
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.pie([data.current_savings, res["remaining_amount"]], labels=['Накопичено', 'Залишилось'], autopct='%1.1f%%', colors=['#2ecc71', '#bdc3c7'])
-    ax.set_title('Прогрес фінансової подушки')
-    
-    summary = f"Цільова сума: {symbol}{res['target_amount']:,.2f}\n" \
-              f"Залишилось зібрати: {symbol}{res['remaining_amount']:,.2f}\n" \
-              f"Час до мети: {res['months_to_target']} міс."
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=emergency_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Звіт про фінансову подушку", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=emergency_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 @app.post("/calculate/tax")
 async def calculate_tax(data: TaxRequest):
@@ -658,33 +356,6 @@ async def calculate_tax(data: TaxRequest):
         "chart": create_chart_base64(fig)
     }
 
-@app.post("/calculate/tax/report")
-async def calculate_tax_report(data: TaxRequest, format: str = "pdf"):
-    res = await calculate_tax(data)
-    symbol = res["currency_symbol"]
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.pie([res["net_income"], res["tax_amount"]], labels=['Чистий дохід', 'Податки'], autopct='%1.1f%%', colors=['#2ecc71', '#e74c3c'])
-    ax.set_title(f'Деталізація податків: {data.country}')
-    
-    summary = f"Дохід брутто: {symbol}{data.income:,.2f}\n" \
-              f"Сума податків: {symbol}{res['tax_amount']:,.2f}\n" \
-              f"Дохід нетто: {symbol}{res['net_income']:,.2f}\n" \
-              f"Ефективна ставка: {res['effective_rate']}%"
-
-    if format.lower() in ["jpg", "jpeg"]:
-        return Response(content=create_image_report(fig), 
-                      media_type="image/jpeg",
-                      headers={
-                          "Content-Disposition": "attachment; filename=tax_report.jpg",
-                          "Access-Control-Expose-Headers": "Content-Disposition"
-                      })
-    return Response(content=create_pdf_report("Податковий звіт", data.dict(), fig, summary), 
-                  media_type="application/pdf", 
-                  headers={
-                      "Content-Disposition": "attachment; filename=tax_report.pdf",
-                      "Access-Control-Expose-Headers": "Content-Disposition"
-                  })
 
 if __name__ == "__main__":
     import uvicorn

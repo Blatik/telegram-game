@@ -704,52 +704,6 @@
             return await response.json();
         }
 
-        async function downloadReport(endpoint, data, filename, format) {
-            console.log(`[Report] Starting download: ${format} for ${filename}`);
-            try {
-                const response = await fetch(`${API_BASE_URL}${endpoint}?format=${format}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: typeof data === 'string' ? data : JSON.stringify(data)
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('[Report] Server error:', errorText);
-                    throw new Error(`Помилка сервера: ${errorText}`);
-                }
-
-                const contentType = response.headers.get('Content-Type');
-                console.log(`[Report] Received response. Content-Type: ${contentType}`);
-
-                const buffer = await response.arrayBuffer();
-                console.log(`[Report] Received ${buffer.byteLength} bytes`);
-
-                const mimeType = format === 'pdf' ? 'application/pdf' : 'image/jpeg';
-                const blob = new Blob([buffer], { type: mimeType });
-
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.target = '_blank';
-                a.download = filename + (format === 'pdf' ? '.pdf' : '.jpg');
-
-                document.body.appendChild(a);
-                a.click();
-
-                console.log(`[Report] Download triggered for ${a.download}`);
-
-                setTimeout(() => {
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    console.log(`[Report] Resources cleaned up`);
-                }, 1000);
-            } catch (e) {
-                console.error('[Report] Download failed:', e);
-                alert('Помилка завантаження звіту: ' + e.message);
-            }
-        }
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -815,10 +769,6 @@
                 </div>
                 <div class="breakdown-item">
                     <img src="${result.chart}" style="width: 100%; border-radius: 10px; margin-bottom: 15px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button class="btn btn-secondary" onclick="downloadReport('${reportEndpoint}', window['${dataKey}'], '${reportFilename}', 'pdf')">📄 PDF</button>
-                        <button class="btn btn-secondary" onclick="downloadReport('${reportEndpoint}', window['${dataKey}'], '${reportFilename}', 'jpg')">🖼 JPG</button>
-                    </div>
                 </div>
             `;
         }
