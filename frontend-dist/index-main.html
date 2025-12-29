@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Симулятор долі</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+        }
+
+        .slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .slider-value {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .decision-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .decision-card:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .decision-card.selected {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .simulation-progress {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Онбординг -->
+        <div id="onboarding" class="screen active">
+            <div class="header">
+                <h1>🔮 Симулятор долі</h1>
+                <p>Дізнайся можливі сценарії свого життя</p>
+            </div>
+            <div class="card">
+                <h3>Як це працює?</h3>
+                <p>• Введи свої параметри</p>
+                <p>• Прийми ключові рішення</p>
+                <p>• Отримай прогноз на основі математики</p>
+                <p>• Порівняй різні сценарії</p>
+            </div>
+            <button class="btn btn-primary" onclick="nextScreen('parameters')">
+                Почати симуляцію 🚀
+            </button>
+        </div>
+
+        <!-- Параметри -->
+        <div id="parameters" class="screen">
+            <div class="header">
+                <h2>Твої стартові параметри</h2>
+            </div>
+            <div class="card">
+                <div class="form-group">
+                    <label>Вік</label>
+                    <input type="number" id="age" min="18" max="65" value="25">
+                </div>
+                <div class="form-group">
+                    <label>Країна</label>
+                    <select id="country">
+                        <option value="ukraine">Україна</option>
+                        <option value="poland">Польща</option>
+                        <option value="germany">Німеччина</option>
+                        <option value="usa">США</option>
+                        <option value="canada">Канада</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Статус</label>
+                    <select id="status">
+                        <option value="student">Студент</option>
+                        <option value="employee">Працівник</option>
+                        <option value="unemployed">Безробітний</option>
+                        <option value="entrepreneur">Підприємець</option>
+                    </select>
+                </div>
+                <div class="slider-group">
+                    <label>Схильність до ризику</label>
+                    <input type="range" class="slider" id="risk" min="1" max="5" value="3" oninput="updateSlider('risk')">
+                    <div class="slider-value" id="risk-value">3/5</div>
+                </div>
+                <div class="slider-group">
+                    <label>Рівень дисципліни</label>
+                    <input type="range" class="slider" id="discipline" min="1" max="5" value="3" oninput="updateSlider('discipline')">
+                    <div class="slider-value" id="discipline-value">3/5</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="nextScreen('decisions')">
+                Далі ➡️
+            </button>
+        </div>
+
+        <!-- Рішення -->
+        <div id="decisions" class="screen">
+            <div class="header">
+                <h2>Ключові рішення</h2>
+                <p>Обери свій шлях</p>
+            </div>
+            <div class="card">
+                <h3>Що робитимеш наступні 5 років?</h3>
+                <div class="decision-card" onclick="selectDecision('stable')">
+                    <strong>🏢 Стабільна робота</strong>
+                    <p>Надійний дохід, низький ризик</p>
+                </div>
+                <div class="decision-card" onclick="selectDecision('business')">
+                    <strong>🚀 Власний бізнес</strong>
+                    <p>Високий потенціал, високий ризик</p>
+                </div>
+                <div class="decision-card" onclick="selectDecision('education')">
+                    <strong>🎓 Додаткова освіта</strong>
+                    <p>Інвестиція в майбутнє</p>
+                </div>
+                <div class="decision-card" onclick="selectDecision('emigration')">
+                    <strong>✈️ Еміграція</strong>
+                    <p>Нові можливості, невизначеність</p>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="start-simulation" onclick="startSimulation()" disabled>
+                Запустити симуляцію 🎯
+            </button>
+        </div>
+
+        <!-- Симуляція -->
+        <div id="simulation" class="screen">
+            <div class="simulation-progress">
+                <h2>Моделюємо твоє життя...</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+                <p id="simulation-text">Ініціалізація...</p>
+            </div>
+        </div>
+
+        <!-- Результати -->
+        <div id="results" class="screen">
+            <div class="header">
+                <h2>Твої сценарії життя</h2>
+            </div>
+            <div id="results-container"></div>
+            <button class="btn btn-primary" onclick="restart()">
+                Нова симуляція 🔄
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let userParams = {};
+        let selectedDecision = null;
+
+        // Ініціалізація Telegram WebApp
+        if (window.Telegram?.WebApp) {
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+        }
+
+        function nextScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function updateSlider(sliderId) {
+            const slider = document.getElementById(sliderId);
+            const valueEl = document.getElementById(sliderId + '-value');
+            valueEl.textContent = slider.value + '/5';
+        }
+
+        function selectDecision(decision) {
+            selectedDecision = decision;
+            document.querySelectorAll('.decision-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.target.closest('.decision-card').classList.add('selected');
+            document.getElementById('start-simulation').disabled = false;
+        }
+
+        function startSimulation() {
+            // Збираємо параметри
+            userParams = {
+                age: parseInt(document.getElementById('age').value),
+                country: document.getElementById('country').value,
+                status: document.getElementById('status').value,
+                risk: parseInt(document.getElementById('risk').value),
+                discipline: parseInt(document.getElementById('discipline').value),
+                decision: selectedDecision
+            };
+
+            nextScreen('simulation');
+            runSimulation();
+        }
+
+        function runSimulation() {
+            const progressBar = document.getElementById('progress');
+            const progressText = document.getElementById('simulation-text');
+            
+            const steps = [
+                'Аналізуємо стартові параметри...',
+                'Моделюємо економічні фактори...',
+                'Розраховуємо ймовірності подій...',
+                'Генеруємо сценарії життя...',
+                'Аналізуємо результати...'
+            ];
+
+            let currentStep = 0;
+            const interval = setInterval(() => {
+                const progress = ((currentStep + 1) / steps.length) * 100;
+                progressBar.style.width = progress + '%';
+                progressText.textContent = steps[currentStep];
+                
+                currentStep++;
+                if (currentStep >= steps.length) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        showResults();
+                    }, 1000);
+                }
+            }, 800);
+        }
+
+        function showResults() {
+            const scenarios = generateScenarios(userParams);
+            const container = document.getElementById('results-container');
+            
+            container.innerHTML = scenarios.map((scenario, index) => `
+                <div class="result-card">
+                    <div class="result-title">${scenario.title}</div>
+                    <p>${scenario.description}</p>
+                    <div class="result-stats">
+                        <div class="stat">
+                            <div class="stat-value">${scenario.income}₴</div>
+                            <div class="stat-label">Середній дохід</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${scenario.success}%</div>
+                            <div class="stat-label">Ймовірність успіху</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            nextScreen('results');
+        }
+
+        function generateScenarios(params) {
+            const baseIncome = getBaseIncome(params.country, params.status);
+            const riskMultiplier = params.risk / 3;
+            const disciplineMultiplier = params.discipline / 3;
+            
+            const scenarios = [];
+            
+            // Генеруємо 3 сценарії на основі рішення
+            switch(params.decision) {
+                case 'stable':
+                    scenarios.push({
+                        title: '🏢 Стабільний шлях',
+                        description: 'Поступове зростання в корпорації',
+                        income: Math.round(baseIncome * disciplineMultiplier * 1.2),
+                        success: Math.min(85, 60 + params.discipline * 5)
+                    });
+                    break;
+                case 'business':
+                    scenarios.push({
+                        title: '🚀 Підприємницький успіх',
+                        description: 'Власний бізнес приносить прибуток',
+                        income: Math.round(baseIncome * riskMultiplier * 2.5),
+                        success: Math.max(20, 40 + params.risk * 8 - params.age)
+                    });
+                    break;
+                case 'education':
+                    scenarios.push({
+                        title: '🎓 Освітній прорив',
+                        description: 'Нові знання відкривають можливості',
+                        income: Math.round(baseIncome * disciplineMultiplier * 1.8),
+                        success: Math.min(90, 70 + params.discipline * 4)
+                    });
+                    break;
+                case 'emigration':
+                    scenarios.push({
+                        title: '✈️ Життя за кордоном',
+                        description: 'Нові горизонти в іншій країні',
+                        income: Math.round(baseIncome * 1.5 * riskMultiplier),
+                        success: Math.max(30, 50 + params.risk * 6)
+                    });
+                    break;
+            }
+
+            // Додаємо альтернативні сценарії
+            scenarios.push({
+                title: '⚖️ Середній сценарій',
+                description: 'Збалансований розвиток без крайнощів',
+                income: Math.round(baseIncome * 1.1),
+                success: 65
+            });
+
+            scenarios.push({
+                title: '📉 Складний період',
+                description: 'Виклики та труднощі на шляху',
+                income: Math.round(baseIncome * 0.8),
+                success: 35
+            });
+
+            return scenarios;
+        }
+
+        function getBaseIncome(country, status) {
+            const incomes = {
+                ukraine: { student: 8000, employee: 15000, unemployed: 3000, entrepreneur: 20000 },
+                poland: { student: 12000, employee: 25000, unemployed: 8000, entrepreneur: 35000 },
+                germany: { student: 18000, employee: 40000, unemployed: 15000, entrepreneur: 50000 },
+                usa: { student: 25000, employee: 60000, unemployed: 20000, entrepreneur: 80000 },
+                canada: { student: 22000, employee: 55000, unemployed: 18000, entrepreneur: 70000 }
+            };
+            return incomes[country][status] || 15000;
+        }
+
+        function restart() {
+            selectedDecision = null;
+            document.querySelectorAll('.decision-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.getElementById('start-simulation').disabled = true;
+            nextScreen('onboarding');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Tools Hub</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .screen {
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: #3498db;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 15px;
+            padding: 5px 0;
+        }
+
+        .tool-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .tool-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .tool-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .tool-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .tool-desc {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .form-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .result-card {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2ecc71;
+            margin-bottom: 10px;
+        }
+
+        .result-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2ecc71;
+            margin-bottom: 5px;
+        }
+
+        .result-desc {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .comparison-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .breakdown-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .breakdown-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #3498db;
+        }
+
+        .action-item {
+            background: rgba(52, 152, 219, 0.1);
+            border-left: 3px solid #3498db;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .timeline {
+            margin-top: 15px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .timeline-date {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-right: 10px;
+            min-width: 60px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Головний екран -->
+        <div id="home" class="screen active">
+            <div class="header">
+                <h1>🧰 Life Tools Hub</h1>
+                <p>Практичні інструменти для життя</p>
+            </div>
+            
+            <div class="tool-grid">
+                <div class="tool-card" onclick="showScreen('calculator-pack')">
+                    <div class="tool-icon">💰</div>
+                    <div class="tool-title">Life Calculator Pack</div>
+                    <div class="tool-desc">Розрахунки доходів, часу та фінансових рішень</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calculator Pack -->
+        <div id="calculator-pack" class="screen">
+            <button class="back-btn" onclick="showScreen('home')">← Назад</button>
+            <div class="header">
+                <h1>💰 Calculator Pack</h1>
+            </div>
+            
+            <div class="tool-grid">
+                <div class="tool-card" onclick="showScreen('hourly-income')">
+                    <div class="tool-title">Real Hourly Income</div>
+                    <div class="tool-desc">Реальний дохід за годину життя</div>
+                </div>
+                
+                <div class="tool-card" onclick="showScreen('time-value')">
+                    <div class="tool-title">Time Value Calculator</div>
+                    <div class="tool-desc">Грошова вартість вашого часу</div>
+                </div>
+                
+                <div class="tool-card" onclick="showScreen('credit-calc')">
+                    <div class="tool-title">Credit Decision</div>
+                    <div class="tool-desc">Доцільність кредиту</div>
+                </div>
+                
+                <div class="tool-card" onclick="showScreen('buy-rent')">
+                    <div class="tool-title">Buy vs Rent</div>
+                    <div class="tool-desc">Купівля чи оренда житла</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real Hourly Income -->
+        <div id="hourly-income" class="screen">
+            <button class="back-btn" onclick="showScreen('calculator-pack')">← Назад</button>
+            <div class="header">
+                <h1>Real Hourly Income</h1>
+                <p>Реальний дохід за годину життя</p>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Місячний дохід (€)</label>
+                    <input type="number" id="monthly-income" placeholder="3000">
+                </div>
+                <div class="form-group">
+                    <label>Податки (%)</label>
+                    <input type="number" id="taxes" placeholder="20">
+                </div>
+                <div class="form-group">
+                    <label>Робочі години на місяць</label>
+                    <input type="number" id="work-hours" placeholder="160">
+                </div>
+                <div class="form-group">
+                    <label>Час дороги (год/міс)</label>
+                    <input type="number" id="commute-time" placeholder="40">
+                </div>
+                <div class="form-group">
+                    <label>Витрати на роботу (€/міс)</label>
+                    <input type="number" id="work-expenses" placeholder="200">
+                </div>
+                <button class="btn btn-primary" onclick="calculateHourlyIncome()">
+                    Розрахувати
+                </button>
+            </div>
+            
+            <div id="hourly-result"></div>
+        </div>
+
+        <!-- Time Value Calculator -->
+        <div id="time-value" class="screen">
+            <button class="back-btn" onclick="showScreen('calculator-pack')">← Назад</button>
+            <div class="header">
+                <h1>Time Value Calculator</h1>
+                <p>Грошова вартість вашого часу</p>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Річний чистий дохід (€)</label>
+                    <input type="number" id="annual-income" placeholder="36000">
+                </div>
+                <div class="form-group">
+                    <label>Реальні робочі години на рік</label>
+                    <input type="number" id="annual-hours" placeholder="2000">
+                </div>
+                <button class="btn btn-primary" onclick="calculateTimeValue()">
+                    Розрахувати
+                </button>
+            </div>
+            
+            <div id="time-result"></div>
+        </div>
+
+        <!-- Credit Decision Calculator -->
+        <div id="credit-calc" class="screen">
+            <button class="back-btn" onclick="showScreen('calculator-pack')">← Назад</button>
+            <div class="header">
+                <h1>Credit Decision</h1>
+                <p>Доцільність кредиту</p>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Сума кредиту (€)</label>
+                    <input type="number" id="credit-amount" placeholder="10000">
+                </div>
+                <div class="form-group">
+                    <label>Відсоткова ставка (%)</label>
+                    <input type="number" id="interest-rate" placeholder="8" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Термін (років)</label>
+                    <input type="number" id="credit-term" placeholder="5">
+                </div>
+                <div class="form-group">
+                    <label>Інфляція (% на рік)</label>
+                    <input type="number" id="inflation" placeholder="3" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Альтернативна дохідність (% на рік)</label>
+                    <input type="number" id="alternative-return" placeholder="6" step="0.1">
+                </div>
+                <button class="btn btn-primary" onclick="calculateCredit()">
+                    Розрахувати
+                </button>
+            </div>
+            
+            <div id="credit-result"></div>
+        </div>
+
+        <!-- Buy vs Rent Calculator -->
+        <div id="buy-rent" class="screen">
+            <button class="back-btn" onclick="showScreen('calculator-pack')">← Назад</button>
+            <div class="header">
+                <h1>Buy vs Rent</h1>
+                <p>Купівля чи оренда житла</p>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Вартість нерухомості (€)</label>
+                    <input type="number" id="property-price" placeholder="200000">
+                </div>
+                <div class="form-group">
+                    <label>Початковий внесок (€)</label>
+                    <input type="number" id="down-payment" placeholder="40000">
+                </div>
+                <div class="form-group">
+                    <label>Ставка іпотеки (%)</label>
+                    <input type="number" id="mortgage-rate" placeholder="4" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Термін іпотеки (років)</label>
+                    <input type="number" id="mortgage-term" placeholder="20">
+                </div>
+                <div class="form-group">
+                    <label>Місячна оренда (€)</label>
+                    <input type="number" id="monthly-rent" placeholder="800">
+                </div>
+                <div class="form-group">
+                    <label>Зростання оренди (% на рік)</label>
+                    <input type="number" id="rent-growth" placeholder="3" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Зростання вартості житла (% на рік)</label>
+                    <input type="number" id="property-growth" placeholder="2" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Горизонт планування (років)</label>
+                    <input type="number" id="planning-horizon" placeholder="10">
+                </div>
+                <button class="btn btn-primary" onclick="calculateBuyVsRent()">
+                    Порівняти
+                </button>
+            </div>
+            
+            <div id="buy-rent-result"></div>
+        </div>
+
+        <!-- Problem Breakdown Tool -->
+        <div id="problem-tool" class="screen">
+            <button class="back-btn" onclick="showScreen('home')">← Назад</button>
+            <div class="header">
+                <h1>🛠 Problem Breakdown</h1>
+                <p>Структурування проблем</p>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Опишіть проблему</label>
+                    <textarea id="problem-desc" placeholder="Наприклад: Не можу знайти роботу..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Що ви контролюєте? (через кому)</label>
+                    <textarea id="controllable" placeholder="резюме, навички, мережа контактів..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Що не контролюєте? (через кому)</label>
+                    <textarea id="uncontrollable" placeholder="економіка, конкуренція, удача..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="breakdownProblem()">
+                    Структурувати
+                </button>
+            </div>
+            
+            <div id="problem-result"></div>
+        </div>
+
+        <!-- Goal Planner -->
+        <div id="goal-planner" class="screen">
+            <button class="back-btn" onclick="showScreen('home')">← Назад</button>
+            <div class="header">
+                <h1>🧭 Goal Planner</h1>
+                <p>Перетворення цілей на проєкти</p>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Ваша ціль</label>
+                    <textarea id="goal-desc" placeholder="Наприклад: Відкрити власний бізнес..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Потрібні навички</label>
+                    <input type="text" id="skills" placeholder="маркетинг, фінанси, продажі">
+                </div>
+                <div class="form-group">
+                    <label>Потрібні ресурси</label>
+                    <input type="text" id="resources" placeholder="комп'ютер, офіс, обладнання">
+                </div>
+                <div class="form-group">
+                    <label>Потрібні люди</label>
+                    <input type="text" id="people" placeholder="партнер, ментор, клієнти">
+                </div>
+                <div class="form-group">
+                    <label>Бюджет (€)</label>
+                    <input type="number" id="budget" placeholder="5000">
+                </div>
+                <div class="form-group">
+                    <label>Часовий горизонт (місяців)</label>
+                    <input type="number" id="timeline" placeholder="12">
+                </div>
+                <button class="btn btn-primary" onclick="planGoal()">
+                    Створити план
+                </button>
+            </div>
+            
+            <div id="goal-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Ініціалізація Telegram WebApp
+        if (window.Telegram?.WebApp) {
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function calculateHourlyIncome() {
+            const monthlyIncome = parseFloat(document.getElementById('monthly-income').value) || 0;
+            const taxes = parseFloat(document.getElementById('taxes').value) || 0;
+            const workHours = parseFloat(document.getElementById('work-hours').value) || 1;
+            const commuteTime = parseFloat(document.getElementById('commute-time').value) || 0;
+            const workExpenses = parseFloat(document.getElementById('work-expenses').value) || 0;
+
+            if (monthlyIncome <= 0 || workHours <= 0) {
+                document.getElementById('hourly-result').innerHTML = '<div class="result-card"><div class="result-desc">Введіть коректні дані</div></div>';
+                return;
+            }
+
+            const netIncome = monthlyIncome * (1 - taxes / 100) - workExpenses;
+            const totalTime = workHours + commuteTime;
+            const realHourlyIncome = netIncome / totalTime;
+            const nominalHourlyIncome = monthlyIncome / workHours;
+
+            const resultHtml = `
+                <div class="result-card">
+                    <div class="result-title">Ваш реальний дохід</div>
+                    <div class="result-value">€${realHourlyIncome.toFixed(2)}/год</div>
+                    <div class="result-desc">
+                        З урахуванням податків, витрат та часу дороги
+                    </div>
+                    <div class="comparison">
+                        <div class="comparison-item">
+                            <strong>Номінальний</strong><br>
+                            €${nominalHourlyIncome.toFixed(2)}/год
+                        </div>
+                        <div class="comparison-item">
+                            <strong>Втрати</strong><br>
+                            €${(nominalHourlyIncome - realHourlyIncome).toFixed(2)}/год
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('hourly-result').innerHTML = resultHtml;
+        }
+
+        function calculateTimeValue() {
+            const annualIncome = parseFloat(document.getElementById('annual-income').value) || 0;
+            const annualHours = parseFloat(document.getElementById('annual-hours').value) || 1;
+
+            if (annualIncome <= 0 || annualHours <= 0) {
+                document.getElementById('time-result').innerHTML = '<div class="result-card"><div class="result-desc">Введіть коректні дані</div></div>';
+                return;
+            }
+
+            const timeValue = annualIncome / annualHours;
+
+            const examples = [
+                { task: 'Прибирання (2 год)', cost: (timeValue * 2).toFixed(0) },
+                { task: 'Готування (1 год)', cost: (timeValue * 1).toFixed(0) },
+                { task: 'Ремонт (4 год)', cost: (timeValue * 4).toFixed(0) }
+            ];
+
+            const resultHtml = `
+                <div class="result-card">
+                    <div class="result-title">Вартість вашого часу</div>
+                    <div class="result-value">€${timeValue.toFixed(2)}/год</div>
+                    <div class="result-desc">
+                        Приклади рішень "зробити самому vs заплатити":
+                    </div>
+                    ${examples.map(ex => `
+                        <div class="breakdown-item">
+                            <strong>${ex.task}</strong><br>
+                            Альтернативна вартість: €${ex.cost}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            document.getElementById('time-result').innerHTML = resultHtml;
+        }
+
+        function breakdownProblem() {
+            const problem = document.getElementById('problem-desc').value;
+            const controllable = document.getElementById('controllable').value.split(',').map(s => s.trim()).filter(s => s);
+            const uncontrollable = document.getElementById('uncontrollable').value.split(',').map(s => s.trim()).filter(s => s);
+
+            const actions = controllable.map(factor => {
+                return generateAction(factor);
+            });
+
+            const resultHtml = `
+                <div class="result-card">
+                    <div class="result-title">Структура проблеми</div>
+                    <div class="result-desc">
+                        <strong>Проблема:</strong> ${problem}
+                    </div>
+                </div>
+                
+                <div class="result-card">
+                    <div class="result-title">План дій (фокус тільки на контрольованому)</div>
+                    ${actions.map(action => `
+                        <div class="action-item">
+                            ${action}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Ігноруємо (не контролюємо)</div>
+                    ${uncontrollable.map(factor => `<div>• ${factor}</div>`).join('')}
+                </div>
+            `;
+
+            document.getElementById('problem-result').innerHTML = resultHtml;
+        }
+
+        function generateAction(factor) {
+            const actionMap = {
+                'резюме': 'Оновити резюме, додати ключові слова',
+                'навички': 'Пройти онлайн-курс або сертифікацію',
+                'мережа': 'Зв\'язатися з 5 людьми з LinkedIn щотижня',
+                'портфоліо': 'Створити/оновити портфоліо з 3 кращими проєктами',
+                'досвід': 'Взяти фріланс проєкт для отримання досвіду',
+                'знання': 'Вивчити 1 нову технологію/інструмент',
+                'здоров\'я': 'Встановити режим сну та харчування',
+                'фінанси': 'Створити бюджет та план заощаджень'
+            };
+
+            for (let key in actionMap) {
+                if (factor.toLowerCase().includes(key)) {
+                    return actionMap[key];
+                }
+            }
+            return `Розробити план покращення: ${factor}`;
+        }
+
+        function planGoal() {
+            const goal = document.getElementById('goal-desc').value;
+            const skills = document.getElementById('skills').value.split(',').map(s => s.trim());
+            const resources = document.getElementById('resources').value.split(',').map(s => s.trim());
+            const people = document.getElementById('people').value.split(',').map(s => s.trim());
+            const budget = parseFloat(document.getElementById('budget').value) || 0;
+            const timeline = parseInt(document.getElementById('timeline').value) || 12;
+
+            const milestones = [
+                { period: '30 днів', tasks: ['Дослідження ринку', 'Навчання базових навичок'] },
+                { period: '90 днів', tasks: ['MVP продукту', 'Перші клієнти'] },
+                { period: '180 днів', tasks: ['Масштабування', 'Оптимізація процесів'] }
+            ];
+
+            const resultHtml = `
+                <div class="result-card">
+                    <div class="result-title">Roadmap цілі</div>
+                    <div class="result-desc">
+                        <strong>Ціль:</strong> ${goal}
+                    </div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Потрібні навички</div>
+                    ${skills.map(skill => `<div>• ${skill}</div>`).join('')}
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Ресурси</div>
+                    ${resources.map(resource => `<div>• ${resource}</div>`).join('')}
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Люди</div>
+                    ${people.map(person => `<div>• ${person}</div>`).join('')}
+                </div>
+                
+                <div class="result-card">
+                    <div class="result-title">Таймлайн (${timeline} місяців)</div>
+                    <div class="timeline">
+                        ${milestones.map(milestone => `
+                            <div class="timeline-item">
+                                <div class="timeline-date">${milestone.period}</div>
+                                <div>
+                                    ${milestone.tasks.map(task => `<div>• ${task}</div>`).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Бюджет</div>
+                    <div>Загальний: €${budget}</div>
+                    <div>На місяць: €${(budget / timeline).toFixed(0)}</div>
+                </div>
+            `;
+
+            document.getElementById('goal-result').innerHTML = resultHtml;
+        }
+
+        function calculateCredit() {
+            const amount = parseFloat(document.getElementById('credit-amount').value) || 0;
+            const rate = parseFloat(document.getElementById('interest-rate').value) || 0;
+            const term = parseFloat(document.getElementById('credit-term').value) || 1;
+            const inflation = parseFloat(document.getElementById('inflation').value) || 0;
+            const altReturn = parseFloat(document.getElementById('alternative-return').value) || 0;
+
+            if (amount <= 0 || rate <= 0 || term <= 0) {
+                document.getElementById('credit-result').innerHTML = '<div class="result-card"><div class="result-desc">Введіть коректні дані</div></div>';
+                return;
+            }
+
+            // Розрахунок щомісячного платежу
+            const monthlyRate = rate / 100 / 12;
+            const numPayments = term * 12;
+            const monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+            
+            // Загальна сума виплат
+            const totalPayment = monthlyPayment * numPayments;
+            const overpayment = totalPayment - amount;
+            
+            // Реальна вартість з урахуванням інфляції
+            const realRate = ((1 + rate/100) / (1 + inflation/100) - 1) * 100;
+            
+            // Альтернативна вартість
+            const alternativeCost = amount * Math.pow(1 + altReturn/100, term) - amount;
+            
+            // Рекомендація
+            let recommendation = '';
+            let recommendationColor = '';
+            
+            if (realRate < altReturn) {
+                recommendation = '✅ Кредит вигідний - реальна ставка нижче альтернативної дохідності';
+                recommendationColor = '#2ecc71';
+            } else if (realRate < 2) {
+                recommendation = '⚖️ Нейтрально - реальна ставка низька';
+                recommendationColor = '#f39c12';
+            } else {
+                recommendation = '❌ Кредит невигідний - краще інвестувати';
+                recommendationColor = '#e74c3c';
+            }
+
+            const resultHtml = `
+                <div class="result-card">
+                    <div class="result-title">Аналіз кредиту</div>
+                    <div class="comparison">
+                        <div class="comparison-item">
+                            <strong>Щомісячний платіж</strong><br>
+                            €${monthlyPayment.toFixed(2)}
+                        </div>
+                        <div class="comparison-item">
+                            <strong>Переплата</strong><br>
+                            €${overpayment.toFixed(0)}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Реальна вартість кредиту</div>
+                    <div>Номінальна ставка: ${rate}%</div>
+                    <div>Реальна ставка (з інфляцією): ${realRate.toFixed(1)}%</div>
+                    <div>Альтернативна дохідність: ${altReturn}%</div>
+                </div>
+                
+                <div class="result-card" style="border-left-color: ${recommendationColor}">
+                    <div class="result-title">Рекомендація</div>
+                    <div class="result-desc" style="color: ${recommendationColor}">
+                        ${recommendation}
+                    </div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Порівняння за ${term} років</div>
+                    <div>Вартість кредиту: €${overpayment.toFixed(0)}</div>
+                    <div>Втрачена вигода від інвестицій: €${alternativeCost.toFixed(0)}</div>
+                </div>
+            `;
+
+            document.getElementById('credit-result').innerHTML = resultHtml;
+        }
+
+        function calculateBuyVsRent() {
+            const propertyPrice = parseFloat(document.getElementById('property-price').value) || 0;
+            const downPayment = parseFloat(document.getElementById('down-payment').value) || 0;
+            const mortgageRate = parseFloat(document.getElementById('mortgage-rate').value) || 0;
+            const mortgageTerm = parseFloat(document.getElementById('mortgage-term').value) || 1;
+            const monthlyRent = parseFloat(document.getElementById('monthly-rent').value) || 0;
+            const rentGrowth = parseFloat(document.getElementById('rent-growth').value) || 0;
+            const propertyGrowth = parseFloat(document.getElementById('property-growth').value) || 0;
+            const horizon = parseFloat(document.getElementById('planning-horizon').value) || 1;
+
+            if (propertyPrice <= 0 || monthlyRent <= 0 || downPayment <= 0) {
+                document.getElementById('buy-rent-result').innerHTML = '<div class="result-card"><div class="result-desc">Введіть коректні дані</div></div>';
+                return;
+            }
+
+            // Розрахунок купівлі
+            const loanAmount = propertyPrice - downPayment;
+            const monthlyMortgageRate = mortgageRate / 100 / 12;
+            const numPayments = mortgageTerm * 12;
+            
+            let monthlyMortgage = 0;
+            if (loanAmount > 0 && mortgageRate > 0) {
+                monthlyMortgage = loanAmount * (monthlyMortgageRate * Math.pow(1 + monthlyMortgageRate, numPayments)) / (Math.pow(1 + monthlyMortgageRate, numPayments) - 1);
+            }
+
+            // Загальні витрати на купівлю за горизонт
+            const totalMortgagePayments = Math.min(horizon * 12, numPayments) * monthlyMortgage;
+            const maintenanceCosts = propertyPrice * 0.01 * horizon; // 1% на рік на обслуговування
+            const totalBuyCosts = downPayment + totalMortgagePayments + maintenanceCosts;
+
+            // Вартість нерухомості через горизонт
+            const futurePropertyValue = propertyPrice * Math.pow(1 + propertyGrowth / 100, horizon);
+            
+            // Залишок боргу через горизонт
+            let remainingDebt = 0;
+            if (horizon < mortgageTerm && loanAmount > 0) {
+                const paymentsLeft = (mortgageTerm - horizon) * 12;
+                remainingDebt = loanAmount * Math.pow(1 + monthlyMortgageRate, horizon * 12) - monthlyMortgage * (Math.pow(1 + monthlyMortgageRate, horizon * 12) - 1) / monthlyMortgageRate;
+                remainingDebt = Math.max(0, remainingDebt);
+            }
+
+            const netBuyPosition = futurePropertyValue - remainingDebt - totalBuyCosts;
+
+            // Розрахунок оренди
+            let totalRentCosts = 0;
+            let currentRent = monthlyRent;
+            
+            for (let year = 0; year < horizon; year++) {
+                totalRentCosts += currentRent * 12;
+                currentRent *= (1 + rentGrowth / 100);
+            }
+
+            // Альтернативні інвестиції (початковий внесок)
+            const investmentReturn = downPayment * Math.pow(1.06, horizon); // 6% річних
+            const netRentPosition = investmentReturn - totalRentCosts;
+
+            // Точка беззбитковості
+            const breakEvenYears = Math.log(monthlyRent * 12 / (monthlyMortgage * 12 + propertyPrice * 0.01)) / Math.log(1 + propertyGrowth / 100 - rentGrowth / 100);
+
+            // Рекомендація
+            let recommendation = '';
+            let recommendationColor = '';
+            
+            if (netBuyPosition > netRentPosition) {
+                recommendation = '🏠 Купівля вигідніша на цьому горизонті';
+                recommendationColor = '#2ecc71';
+            } else {
+                recommendation = '🏠 Оренда вигідніша на цьому горизонті';
+                recommendationColor = '#3498db';
+            }
+
+            const resultHtml = `
+                <div class="result-card" style="border-left-color: ${recommendationColor}">
+                    <div class="result-title">Рекомендація</div>
+                    <div class="result-desc" style="color: ${recommendationColor}">
+                        ${recommendation}
+                    </div>
+                </div>
+                
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <strong>Купівля</strong><br>
+                        Чиста позиція: €${netBuyPosition.toFixed(0)}<br>
+                        <small>Витрати: €${totalBuyCosts.toFixed(0)}</small>
+                    </div>
+                    <div class="comparison-item">
+                        <strong>Оренда</strong><br>
+                        Чиста позиція: €${netRentPosition.toFixed(0)}<br>
+                        <small>Витрати: €${totalRentCosts.toFixed(0)}</small>
+                    </div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Деталі купівлі за ${horizon} років</div>
+                    <div>Щомісячний платіж: €${monthlyMortgage.toFixed(0)}</div>
+                    <div>Вартість нерухомості: €${futurePropertyValue.toFixed(0)}</div>
+                    <div>Залишок боргу: €${remainingDebt.toFixed(0)}</div>
+                    <div>Обслуговування: €${maintenanceCosts.toFixed(0)}</div>
+                </div>
+                
+                <div class="breakdown-item">
+                    <div class="breakdown-title">Деталі оренди за ${horizon} років</div>
+                    <div>Поточна оренда: €${monthlyRent}/міс</div>
+                    <div>Оренда через ${horizon} років: €${(monthlyRent * Math.pow(1 + rentGrowth/100, horizon)).toFixed(0)}/міс</div>
+                    <div>Інвестиції початкового внеску: €${investmentReturn.toFixed(0)}</div>
+                </div>
+                
+                <div class="result-card">
+                    <div class="result-title">Точка беззбитковості</div>
+                    <div class="result-desc">
+                        ${breakEvenYears > 0 && breakEvenYears < 50 ? 
+                            `Купівля стане вигіднішою через ${breakEvenYears.toFixed(1)} років` : 
+                            'Складно визначити точку беззбитковості з поточними параметрами'}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('buy-rent-result').innerHTML = resultHtml;
+        }
+    </script>
+</body>
+</html>
