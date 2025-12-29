@@ -689,10 +689,10 @@
             tg.expand();
         }
 
-        // Update this URL after deploying your backend to Render.com
+        // Update this URL after deploying your backend to your VPS
         const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:8000'
-            : 'https://finance-api.onrender.com'; // Replace with your Render URL
+            : 'https://34.169.229.189.sslip.io'; // Live HTTPS endpoint via Caddy
 
         async function callAPI(endpoint, data) {
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
