@@ -1,0 +1,1 @@
+/Users/blatik/Downloads/telegram-game/backend-rust/target/wasm32-unknown-unknown/release/backend_rust.wasm: /Users/blatik/Downloads/telegram-game/backend-rust/src/calculators.rs /Users/blatik/Downloads/telegram-game/backend-rust/src/lib.rs /Users/blatik/Downloads/telegram-game/backend-rust/src/models.rs
