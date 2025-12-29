@@ -5,8 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>💰 Financial Calculator Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -702,47 +700,6 @@
             return await response.json();
         }
 
-        async function downloadReport(containerId, filename, format) {
-            const element = document.getElementById(containerId); // Capture only the result container
-            if (!element) return;
-
-            // Show loading state
-            const originalText = document.activeElement.innerText;
-            document.activeElement.innerText = '⏳...';
-
-            try {
-                const canvas = await html2canvas(element, {
-                    scale: 2, // Better quality
-                    backgroundColor: '#1E3C72', // Match background
-                    logging: false
-                });
-
-                if (format === 'jpg') {
-                    const link = document.createElement('a');
-                    link.download = `${filename}.jpg`;
-                    link.href = canvas.toDataURL('image/jpeg', 0.9);
-                    link.click();
-                } else if (format === 'pdf') {
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const imgData = canvas.toDataURL('image/jpeg', 0.9);
-
-                    const imgProps = pdf.getImageProperties(imgData);
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-                    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                    pdf.save(`${filename}.pdf`);
-                }
-            } catch (err) {
-                console.error('Export failed:', err);
-                alert('Помилка експорту: ' + err.message);
-            } finally {
-                document.activeElement.innerText = originalText;
-            }
-        }
-
-
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
@@ -870,10 +827,6 @@
                 </div>
                 <div class="breakdown-item">
                     ${chartConfig ? `<div style="position: relative; height:300px; width:100%;"><canvas id="chart_${containerId}"></canvas></div>` : ''}
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;" data-html2canvas-ignore="true">
-                        <button class="btn btn-secondary" onclick="downloadReport('${containerId}', '${reportFilename}', 'pdf')">📄 PDF</button>
-                        <button class="btn btn-secondary" onclick="downloadReport('${containerId}', '${reportFilename}', 'jpg')">🖼 JPG</button>
-                    </div>
                 </div>
             `;
 
